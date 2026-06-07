@@ -1,0 +1,197 @@
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --app-primary: #212121;
+  --app-primary-contrast: #212121;
+  --app-surface: #212121;
+  --app-foreground: #e0e0e0;
+  --app-background: #212121;
+  --app-button: #512DA8;
+  --app-input-surface: #333333;
+  --app-input-border: #555555;
+}
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--app-background);
+  color: var(--app-foreground);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+  height: 90%;
+  background-color: var(--app-surface);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+#chatContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+}
+
+#messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  background-color: var(--app-input-surface);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  max-height: calc(100% - 60px);
+}
+
+#messages:focus {
+  outline: 3px solid #ff6600;
+  outline-offset: 2px;
+}
+
+.message {
+  background-color: #444;
+  color: #e0e0e0;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 8px;
+}
+
+.message a {
+  color: white !important;
+  text-decoration: none;
+}
+
+.message a:hover {
+  text-decoration: underline;
+}
+
+/* Input Container & Components Layout */
+#inputContainer {
+  display: flex;
+  flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+  gap: 10px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+/* navigation-optimized buttons */
+.app-button,
+.icon-button {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  background-color: var(--app-button);
+  color: var(--app-primary-contrast);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.icon-button {
+  padding: 8px 12px;
+  font-size: 18px;
+  min-width: 44px;
+}
+
+/* navigation focus state for D-pad navigation */
+.app-button:focus,
+.icon-button:focus {
+  outline: 3px solid #ff6600;
+  outline-offset: 2px;
+  transform: scale(1.05);
+}
+
+.app-button:hover,
+.icon-button:hover {
+  background-color: #4527A0;
+}
+
+.app-button:active,
+.icon-button:active {
+  transform: scale(0.98);
+}
+
+/* navigation-optimized input */
+.chat-input {
+  flex-grow: 1;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background-color: #333;
+  color: #e0e0e0;
+  outline: none;
+}
+
+.chat-input:focus {
+  outline: 3px solid #ff6600;
+  outline-offset: 2px;
+  border-color: #ff6600;
+}
+
+.chat-input::placeholder {
+  color: #999;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  #app {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    border-radius: 0;
+  }
+  
+  .app-button,
+  .icon-button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* navigation compact screens (320px width) */
+@media (display-mode: standalone) and (max-width: 320px) {
+  #app {
+    width: 100%;
+    padding: 8px;
+    height: 100%;
+  }
+  
+  .app-button,
+  .icon-button {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-width: 40px;
+  }
+  
+  .icon-button {
+    padding: 6px 8px;
+    font-size: 16px;
+  }
+  
+  #inputContainer {
+    gap: 6px;
+  }
+}
+footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+}

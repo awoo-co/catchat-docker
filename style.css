@@ -1,0 +1,104 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #212121;
+    --surface: #263238;
+    --text: #e7e7e7;
+    --muted: #b7b7b7;
+    --accent: #512DA8;
+    --accent-strong: #4527A0;
+    --danger: #E53935;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+p {
+    font-size: 1rem;
+    margin: 0.6rem 0 1rem;
+    color: var(--muted);
+}
+
+.container {
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid #2c2c2c;
+    border-radius: 12px;
+    padding: 24px;
+    width: min(420px, 92vw);
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.app-button {
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #FAFAFA;
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+    min-width: 200px;
+}
+
+.app-button.danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.app-button:hover,
+.app-button:focus-visible {
+    background: var(--accent-strong);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.app-button.danger:hover,
+.app-button.danger:focus-visible {
+    background: #B71C1C;
+}
+
+@media (display-mode: standalone) and (max-width: 320px) {
+    .app-button {
+        padding: 12px 16px;
+        font-size: 14px;
+        min-width: 160px;
+    }
+    
+    .container {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        width: min(92vw, 420px);
+        padding: 18px;
+    }
+    
+    .button-group {
+        gap: 10px;
+    }
+    
+    .app-button {
+        min-width: 160px;
+    }
+}

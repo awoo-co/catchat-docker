@@ -1,0 +1,40 @@
+name: catchat
+services:
+  main_app:
+    cpu_shares: 10
+    command: []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    hostname: ""
+    image: httpd:trixie
+    labels:
+      icon: https://awoo-co.github.io/cdn/favicon.ico
+    ports:
+      - target: 80
+        published: "8081"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/httpd/www
+        target: /usr/local/apache2/htdocs
+    devices: []
+    cap_add: []
+    environment: []
+    network_mode: bridge
+    privileged: false
+    container_name: ""
+x-casaos:
+  author: self
+  category: self
+  hostname: ""
+  icon: https://awoo-co.github.io/cdn/favicon.ico
+  index: /
+  is_uncontrolled: false
+  port_map: "8081"
+  scheme: http
+  store_app_id: radiant_ahmed
+  title:
+    custom: catchat

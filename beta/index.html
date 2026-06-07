@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catchat</title>
+  <link rel="stylesheet" href="style.css">
+   <link rel="shortcut icon" href="https://awoo-co.github.io/cdn/favicon.ico" type="image/x-icon">
+</head>
+<body class="dark-mode">
+  <div id="app">
+    <div id="connectionStatus">Connecting to chat...</div>
+    <button id="reconnectButton" class="app-button" style="display: none;">🔄</button>
+    
+    <div id="chatContainer">
+      <div id="messages" class="messages" tabindex="0">
+        </div>
+
+      <div id="inputContainer">
+        <button id="uploadButton" class="icon-button" title="Upload Database">💾</button>
+        <button id="downloadButton" class="icon-button" title="Download Database">📥</button>
+        <button id="fileUploadButton" class="icon-button" title="Upload File">📤</button>
+  <input type="file" id="fileInput" style="display:none" />
+        
+        <input id="input" class="chat-input" placeholder="Type your message..." type="text" />
+        
+        <button id="sendButton" class="icon-button" title="Send">📨</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.scaledrone.com/scaledrone.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+</html>
