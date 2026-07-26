@@ -1,4 +1,4 @@
-name: catchat
+name: catchat-docker
 services:
   main_app:
     cpu_shares: 10
@@ -7,34 +7,39 @@ services:
       resources:
         limits:
           memory: 256M
-    hostname: ""
-    image: httpd:trixie
+    image: ghcr.io/awoo-co/catchat-docker:latest
     labels:
-      icon: https://awoo-co.github.io/cdn/favicon.ico
+      icon: https://awoo-co.github.io/cdn/favicon.png
     ports:
-      - target: 80
-        published: "8081"
+      - target: 3030
+        published: "3030"
         protocol: tcp
     restart: unless-stopped
     volumes:
       - type: bind
-        source: /DATA/AppData/httpd/www
-        target: /usr/local/apache2/htdocs
+        source: /DATA/AppData/catchat-docker/data
+        target: /app/data
+      - type: bind
+        source: /DATA/AppData/catchat-docker/uploads
+        target: /app/uploads
     devices: []
     cap_add: []
-    environment: []
+    environment:
+      - DB_PATH=/app/data/chat.db
+      - PORT=3001
     network_mode: bridge
     privileged: false
     container_name: ""
+    hostname: ""
 x-casaos:
   author: self
   category: self
   hostname: ""
-  icon: https://awoo-co.github.io/cdn/favicon.ico
+  icon: https://awoo-co.github.io/cdn/favicon.png
   index: /
   is_uncontrolled: false
-  port_map: "8081"
+  port_map: "3001"
   scheme: http
-  store_app_id: radiant_ahmed
+  store_app_id: catchat-docker
   title:
-    custom: catchat
+    custom: catchat-docker
