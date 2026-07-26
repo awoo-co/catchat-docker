@@ -1,6 +1,6 @@
-name: catchat-docker
+name: catchat-frontend
 services:
-  main_app:
+  frontend_app:
     cpu_shares: 10
     command: []
     deploy:
@@ -8,9 +8,8 @@ services:
         limits:
           memory: 256M
     environment:
-      - DB_PATH=/app/data/chat.db
       - PORT=3030
-    image: ghcr.io/awoo-co/catchat-docker:latest
+    image: catchat-frontend:latest
     labels:
       icon: https://awoo-co.github.io/cdn/favicon.png
     ports:
@@ -18,18 +17,11 @@ services:
         published: "3030"
         protocol: tcp
     restart: unless-stopped
-    volumes:
-      - type: bind
-        source: /DATA/AppData/catchat-docker/data
-        target: /app/data
-      - type: bind
-        source: /DATA/AppData/catchat-docker/uploads
-        target: /app/uploads
     devices: []
     cap_add: []
     network_mode: bridge
     privileged: false
-    container_name: ""
+    container_name: catchat-frontend
     hostname: ""
 x-casaos:
   author: self
@@ -40,6 +32,6 @@ x-casaos:
   is_uncontrolled: false
   port_map: "3030"
   scheme: http
-  store_app_id: catchat-docker
+  store_app_id: catchat-frontend
   title:
-    custom: catchat-docker
+    custom: catchat-frontend
