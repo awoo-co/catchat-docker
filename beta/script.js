@@ -1,6 +1,6 @@
 // Hardcode your HTTP backend URL directly since HTTPS is disabled on Tailscale
 const BACKEND_URL = window.CATCHAT_BACKEND_URL || 'http://jam-server.opah-pierce.ts.net:3001';
-const ROOM_NAME = 'catchat1';
+const ROOM_NAME = 'catchatbeta';
 
 
 

@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/awoo-co/catchat-docker.git"
   },
-  "license": "ISC",
+  "license": "MIT",
   "author": "awoo-co",
   "type": "commonjs",
   "main": "main.js",
