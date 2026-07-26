@@ -7,6 +7,9 @@ services:
       resources:
         limits:
           memory: 256M
+    environment:
+      - DB_PATH=/app/data/chat.db
+      - PORT=3030
     image: ghcr.io/awoo-co/catchat-docker:latest
     labels:
       icon: https://awoo-co.github.io/cdn/favicon.png
@@ -24,9 +27,6 @@ services:
         target: /app/uploads
     devices: []
     cap_add: []
-    environment:
-      - DB_PATH=/app/data/chat.db
-      - PORT=3001
     network_mode: bridge
     privileged: false
     container_name: ""
@@ -38,7 +38,7 @@ x-casaos:
   icon: https://awoo-co.github.io/cdn/favicon.png
   index: /
   is_uncontrolled: false
-  port_map: "3001"
+  port_map: "3030"
   scheme: http
   store_app_id: catchat-docker
   title:
