@@ -9,7 +9,7 @@ services:
           memory: 256M
     environment:
       - PORT=3030
-    image: catchat-frontend:latest
+    image: catchat-docker:latest
     labels:
       icon: https://awoo-co.github.io/cdn/favicon.png
     ports:
