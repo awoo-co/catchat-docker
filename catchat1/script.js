@@ -2,7 +2,7 @@
 const BACKEND_URL = window.CATCHAT_BACKEND_URL || 'http://jam-server.opah-pierce.ts.net:3001';
 const ROOM_NAME = 'catchat1';
 
-// ... (keep rest of your helper functions unchanged) ...
+
 
 function initializeSocket() {
   return new Promise((resolve, reject) => {
