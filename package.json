@@ -1,0 +1,23 @@
+{
+  "name": "catchat-docker",
+  "version": "1.0.0",
+  "description": "catchat docker version",
+  "homepage": "https://github.com/awoo-co/catchat-docker#readme",
+  "bugs": {
+    "url": "https://github.com/awoo-co/catchat-docker/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awoo-co/catchat-docker.git"
+  },
+  "license": "ISC",
+  "author": "awoo-co",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

@@ -6,19 +6,16 @@
 }
 
 :root {
-  --app-primary: #212121;
-  --app-primary-contrast: #212121;
-  --app-surface: #212121;
+  --app-primary: #86d289;
+  --app-primary-contrast: #00390f;
+  --app-surface: #1a1a1a;
   --app-foreground: #e0e0e0;
-  --app-background: #212121;
-  --app-button: #512DA8;
+  --app-background: #181818;
+  --app-button: #28a745;
   --app-input-surface: #333333;
   --app-input-border: #555555;
 }
-header {
-    text-align: center;
-    margin-bottom: 20px;
-}
+
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--app-background);
@@ -80,16 +77,14 @@ body {
   text-decoration: underline;
 }
 
-/* Input Container & Components Layout */
 #inputContainer {
   display: flex;
-  flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 10px;
   align-items: center;
 }
 
-/* navigation-optimized buttons */
 .app-button,
 .icon-button {
   padding: 10px 16px;
@@ -110,7 +105,6 @@ body {
   min-width: 44px;
 }
 
-/* navigation focus state for D-pad navigation */
 .app-button:focus,
 .icon-button:focus {
   outline: 3px solid #ff6600;
@@ -120,7 +114,7 @@ body {
 
 .app-button:hover,
 .icon-button:hover {
-  background-color: #4527A0;
+  background-color: #5ab05a;
 }
 
 .app-button:active,
@@ -128,7 +122,6 @@ body {
   transform: scale(0.98);
 }
 
-/* navigation-optimized input */
 .chat-input {
   flex-grow: 1;
   padding: 10px;
@@ -150,7 +143,6 @@ body {
   color: #999;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   #app {
     width: 100%;
@@ -158,7 +150,7 @@ body {
     padding: 10px;
     border-radius: 0;
   }
-  
+
   .app-button,
   .icon-button {
     padding: 8px 12px;
@@ -166,32 +158,26 @@ body {
   }
 }
 
-/* navigation compact screens (320px width) */
 @media (display-mode: standalone) and (max-width: 320px) {
   #app {
     width: 100%;
     padding: 8px;
     height: 100%;
   }
-  
+
   .app-button,
   .icon-button {
     padding: 6px 10px;
     font-size: 12px;
     min-width: 40px;
   }
-  
+
   .icon-button {
     padding: 6px 8px;
     font-size: 16px;
   }
-  
+
   #inputContainer {
     gap: 6px;
   }
-}
-footer {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 12px;
 }

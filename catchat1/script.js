@@ -1,391 +1,144 @@
-const CLIENT_ID = 'VcFdeFedyz6Pcbkw';
-const SUPABASE_URL = 'https://cwfhtorhywinknbilpre.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3Zmh0b3JoeXdpbmtuYmlscHJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MDU2NjYsImV4cCI6MjA2NjE4MTY2Nn0.tD7bW79SQgnQaTZlqC6FbpkdUDfNa7k-0Se69Bn-EqA';
+// Hardcode your HTTP backend URL directly since HTTPS is disabled on Tailscale
+const BACKEND_URL = window.CATCHAT_BACKEND_URL || 'http://jam-server.opah-pierce.ts.net:3001';
+const ROOM_NAME = 'catchat1';
 
-// CORRECTED Supabase initialization:
-// Access createClient from the global 'supabase' object provided by the CDN
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ... (keep rest of your helper functions unchanged) ...
 
-// Application state
+function initializeSocket() {
+  return new Promise((resolve, reject) => {
+    myNickname = generateNickname();
+    setConnectionStatus('Connecting...');
+
+    socket = io(BACKEND_URL, {
+      // Start with HTTP polling first, then upgrade to WebSocket
+      transports: ['polling', 'websocket'],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10
+    });
+
+    setupSocketHandlers();
+
+    // Use .once to prevent promise state issues on reconnects
+    socket.once('connect', () => resolve());
+    socket.once('connect_error', (error) => reject(error));
+  });
+};
+  
 let myNickname = null;
-let drone = null;
-let members = [];
-let db = null;
+let socket = null;
 let lastMessageId = 0;
 let isSendingMessage = false;
-let roomJoinResolved = false;
+let listenersBound = false;
 
-// Initialize IndexedDB
-function initializeDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('CatchatDB', 3);
-
-    request.onerror = (event) => {
-      console.error('Database error:', event.target.error);
-      reject('Failed to open database');
-    };
-
-    request.onsuccess = (event) => {
-      db = event.target.result;
-      console.log('Database ready');
-      resolve();
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('messages')) {
-        const store = db.createObjectStore('messages', { keyPath: 'id' });
-        store.createIndex('by_timestamp', 'timestamp');
-        store.createIndex('by_sender', 'sender');
-      }
-    };
-  });
-}
-
-// Nickname generator
 function generateNickname() {
-  const words = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"];
-  const numbers = Array.from({ length: 200 }, (_, i) => i + 1);
+  const words = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo'];
   const randomWord = words[Math.floor(Math.random() * words.length)];
-  const randomNumber = numbers[Math.floor(Math.random() * numbers.length)];
+  const randomNumber = Math.floor(Math.random() * 200) + 1;
   return `${randomWord}${randomNumber}`;
 }
 
-// Initialize Scaledrone connection
-function initializeDrone() {
-  return new Promise((resolve) => {
-    const nickname = generateNickname();
-    myNickname = nickname;
-    document.getElementById('connectionStatus').textContent = "Connecting...";
-
-    drone = new ScaleDrone(CLIENT_ID, {
-      data: { name: nickname, color: '#ff6600' }
-    });
-
-    drone.on('open', error => {
-      if (error) {
-        console.error('Connection failed:', error);
-        document.getElementById('connectionStatus').textContent = "Connection failed";
-        document.getElementById('reconnectButton').style.display = 'block';
-        return;
-      }
-
-      if (drone.clientData && drone.clientData.name) {
-        myNickname = drone.clientData.name;
-        console.log("Nickname confirmed:", myNickname);
-      }
-
-      document.getElementById('connectionStatus').textContent = `Connected as ${myNickname}`;
-      document.getElementById('reconnectButton').style.display = 'none';
-      resolve();
-    });
-
-    drone.on('close', () => {
-      document.getElementById('connectionStatus').textContent = "Disconnected";
-      document.getElementById('reconnectButton').style.display = 'block';
-    });
-
-    drone.on('error', (error) => {
-      console.error('Connection error:', error);
-      document.getElementById('connectionStatus').textContent = "Connection error";
-    });
-  });
+function setConnectionStatus(text) {
+  const node = document.getElementById('connectionStatus');
+  if (node) node.textContent = text;
 }
 
-// Room handlers
-function setupRoomHandlers() {
-  roomJoinResolved = false;
-  const room = drone.subscribe('catchat1');
-
-  room.on('open', error => {
-    if (error) {
-      console.error('Failed to join room:', error);
-    } else {
-      console.log('Successfully joined room');
-      if (!roomJoinResolved) {
-        roomJoinResolved = true;
-      }
-    }
-  });
-
-  room.on('members', m => {
-    members = m;
-    if (!roomJoinResolved) {
-      roomJoinResolved = true;
-    }
-    notify(`${members.length} users in chat`);
-  });
-
-  room.on('member_join', member => {
-    const name = member?.clientData?.name || "Anonymous";
-    notify(`${name} joined the chat`);
-  });
-
-  room.on('member_leave', member => {
-    const name = member?.clientData?.name || "Anonymous";
-    notify(`${name} left the chat`);
-  });
-
-  room.on('data', (messageData, member) => {
-    if (messageData.id <= lastMessageId) return;
-    // Check if the message is from a different sender or if it's a local message being published
-    // The !isSendingMessage check is to prevent adding our own published messages twice when they come back via Scaledrone
-    // The isLocal property is to distinguish messages originating from the current client
-    // Only display messages that are not our own echoes or are genuinely new.
-    if (messageData.sender !== myNickname || messageData.isLocal) {
-        addMessageToDOM(messageData);
-        // Only play sound for incoming messages, not our own local ones being displayed
-        if (messageData.sender !== myNickname) {
-            playNotificationSound();
-        }
-        // Only store if it's a new message or our own sent message (which should be stored once)
-        storeMessage(messageData);
-    }
-  });
+function setReconnectVisible(visible) {
+  const button = document.getElementById('reconnectButton');
+  if (button) button.style.display = visible ? 'block' : 'none';
 }
 
-// Message handling
-function sendMessage() {
-  if (isSendingMessage) return;
+function disableLegacyBackupButtons() {
+  const uploadButton = document.getElementById('uploadButton');
+  const downloadButton = document.getElementById('downloadButton');
 
-  const input = document.getElementById('input');
-  const messageText = input.value.trim();
-  if (!messageText) return;
+  if (uploadButton) {
+    uploadButton.disabled = true;
+    uploadButton.title = 'Backup moved to backend';
+  }
 
-  isSendingMessage = true;
-  const messageId = Date.now();
-  lastMessageId = messageId;
+  if (downloadButton) {
+    downloadButton.disabled = true;
+    downloadButton.title = 'Restore moved to backend';
+  }
+}
 
-  const messageData = {
-    id: messageId,
-    text: messageText,
-    sender: myNickname,
-    timestamp: new Date().toISOString(),
-    isLocal: true // Mark as local message for initial DOM display and to avoid re-processing when it echoes back
-  };
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  addMessageToDOM(messageData); // Add immediately to DOM
-  drone.publish({ room: 'catchat1', message: messageData });
-  storeMessage(messageData);
-  input.value = '';
-  isSendingMessage = false;
+function buildAbsoluteUrl(pathOrUrl) {
+  if (!pathOrUrl) return '';
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${BACKEND_URL}${pathOrUrl}`;
+}
+
+function renderMessageBody(message) {
+  if (message.fileUrl) {
+    const fileUrl = buildAbsoluteUrl(message.fileUrl);
+    const fileName = escapeHtml(message.fileName || 'uploaded file');
+    const fileType = String(message.fileType || '').toLowerCase();
+
+    if (fileType.startsWith('image/')) {
+      return `<img src="${fileUrl}" alt="${fileName}" style="max-width: 200px; border-radius: 6px;">`;
+    }
+
+    return `<a href="${fileUrl}" download>${fileName}</a>`;
+  }
+
+  return escapeHtml(message.text || '');
 }
 
 function addMessageToDOM(message) {
+  if (!message || typeof message.id === 'undefined') return;
+
   const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
   if (existingMessage) return;
 
   const messagesDiv = document.getElementById('messages');
+  if (!messagesDiv) return;
+
   const messageElement = document.createElement('div');
   messageElement.className = 'message';
-  // Add a class for messages sent by the current user
+
   if (message.sender === myNickname) {
     messageElement.classList.add('my-message');
   }
 
   messageElement.dataset.messageId = message.id;
+  const senderName = escapeHtml(message.sender || 'Unknown');
+  messageElement.innerHTML = `<strong>${senderName}:</strong> ${renderMessageBody(message)}`;
 
-  const senderName = message.sender || "Unknown";
-  messageElement.innerHTML = `<strong>${senderName}:</strong> ${message.text}`;
   messagesDiv.appendChild(messageElement);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
 
-// Database operations
-function storeMessage(message) {
-  if (!db) return;
-
-  // Create a copy to remove 'isLocal' before storing, as it's a transient state
-  const messageToStore = { ...message };
-  delete messageToStore.isLocal;
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['messages'], 'readwrite');
-    const store = transaction.objectStore('messages');
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = (event) => reject(event.target.error);
-    store.put(messageToStore);
-  });
-}
-
-function loadMessages() {
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    const transaction = db.transaction(['messages'], 'readonly');
-    const store = transaction.objectStore('messages');
-    const index = store.index('by_timestamp');
-    const request = index.getAll();
-
-    request.onsuccess = () => {
-      const messages = request.result.slice(-100); // Load last 100 messages
-      messages.forEach(msg => {
-        if (msg.id > lastMessageId) {
-          addMessageToDOM(msg);
-          lastMessageId = Math.max(lastMessageId, msg.id);
-        }
-      });
-      resolve();
-    };
-
-    request.onerror = (event) => {
-      console.error('Failed to load messages:', event.target.error);
-      resolve();
-    };
-  });
-}
-
-// File handling with Supabase
-async function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const uploadStatus = document.createElement('div');
-  uploadStatus.className = 'upload-status';
-  uploadStatus.textContent = `Uploading ${file.name}...`;
-  document.getElementById('messages').appendChild(uploadStatus);
-
-  try {
-    const fileName = `${Date.now()}-${file.name}`;
-    const { data, error } = await supabaseClient.storage
-      .from('catchat-uploads')
-      .upload(fileName, file);
-
-    if (error) throw error;
-
-    // Supabase JS v2 now returns the public URL directly in the upload response data
-    // Or you can still get it like this if needed:
-    const { data: { publicUrl } } = supabaseClient.storage
-      .from('catchat-uploads')
-      .getPublicUrl(fileName);
-
-    uploadStatus.remove();
-
-    const messageData = {
-      id: Date.now(),
-      text: file.type.startsWith('image/')
-        ? `<img src="${publicUrl}" alt="${file.name}" style="max-width: 200px;">`
-        : `<a href="${publicUrl}" target="_blank">${file.name}</a>`,
-      sender: myNickname,
-      timestamp: new Date().toISOString(),
-      isLocal: true // Mark as local
-    };
-
-    addMessageToDOM(messageData);
-    drone.publish({ room: 'catchat1', message: messageData });
-    storeMessage(messageData);
-  } catch (error) {
-    uploadStatus.textContent = `Upload failed: ${error.message}`;
-    setTimeout(() => uploadStatus.remove(), 3000);
+  if (Number(message.id) > lastMessageId) {
+    lastMessageId = Number(message.id);
   }
 }
 
-// Backup functions with Supabase
-async function uploadDatabaseToSupabase() {
-  if (!db) {
-    alert("Database not ready");
-    return;
-  }
-
-  const status = document.createElement('div');
-  status.className = 'backup-status';
-  status.textContent = "Preparing backup...";
-  document.getElementById('messages').appendChild(status);
-
+async function loadMessages() {
   try {
-    const transaction = db.transaction(['messages'], 'readonly');
-    const store = transaction.objectStore('messages');
-    const request = store.getAll();
+    const response = await fetch(`${BACKEND_URL}/messages?limit=100`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    request.onsuccess = async () => {
-      status.textContent = "Uploading backup...";
-      const messages = request.result;
-      const blob = new Blob([JSON.stringify(messages)], { type: 'application/json' });
-      const fileName = `backup-${Date.now()}.json`;
-
-      const { error } = await supabaseClient.storage
-        .from('catchat-uploads')
-        .upload(fileName, blob);
-
-      if (error) throw error;
-
-      status.textContent = "Backup successful!";
-      setTimeout(() => status.remove(), 3000);
-    };
-
-    request.onerror = () => {
-      status.textContent = "Failed to prepare backup";
-      setTimeout(() => status.remove(), 3000);
-    };
-  } catch (error) {
-    status.textContent = `Backup failed: ${error.message}`;
-    setTimeout(() => status.remove(), 3000);
-  }
-}
-
-async function loadDatabaseFromSupabase() {
-  const url = prompt("Enter Supabase file URL:");
-  if (!url) return;
-
-  const status = document.createElement('div');
-  status.className = 'restore-status';
-  status.textContent = "Restoring backup...";
-  document.getElementById('messages').appendChild(status);
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch backup');
     const messages = await response.json();
-
-    const transaction = db.transaction(['messages'], 'readwrite');
-    const store = transaction.objectStore('messages');
-
-    // Clear existing messages before adding new ones
-    await new Promise((resolve, reject) => {
-      const clearRequest = store.clear();
-      clearRequest.onsuccess = () => {
-        const putPromises = messages.map(msg => {
-          return new Promise((res, rej) => {
-            const putRequest = store.put(msg);
-            putRequest.onsuccess = res;
-            putRequest.onerror = rej;
-          });
-        });
-
-        Promise.all(putPromises)
-          .then(() => {
-            status.textContent = "Restore successful!";
-            // Clear current DOM messages and reload from DB to ensure consistency
-            document.getElementById('messages').innerHTML = '';
-            lastMessageId = 0; // Reset lastMessageId
-            loadMessages();
-            setTimeout(() => status.remove(), 3000);
-            resolve();
-          })
-          .catch(err => {
-            console.error("Error during message put:", err);
-            status.textContent = "Partial restore completed or failed";
-            document.getElementById('messages').innerHTML = ''; // Clear anyway
-            lastMessageId = 0;
-            loadMessages(); // Load whatever was restored
-            setTimeout(() => status.remove(), 3000);
-            reject(err); // Propagate error
-          });
-      };
-      clearRequest.onerror = (event) => reject(event.target.error);
-    });
+    messages.forEach(addMessageToDOM);
   } catch (error) {
-    status.textContent = `Restore failed: ${error.message}`;
-    setTimeout(() => status.remove(), 3000);
+    console.error('Failed to load messages:', error);
   }
 }
 
-// Utilities
 function playNotificationSound() {
   try {
-    const audio = new Audio('/src/ding.mp3'); // Make sure this path is correct relative to your HTML
+    const audio = new Audio('/src/ding.mp3');
     audio.volume = 0.3;
-    audio.play().catch(e => console.log('Audio play prevented or error:', e));
+    audio.play().catch((e) => console.log('Audio play prevented or error:', e));
   } catch (e) {
     console.log('Failed to play sound:', e);
   }
@@ -396,6 +149,7 @@ function notify(message) {
     const isBackground = typeof document !== 'undefined'
       ? document.visibilityState !== 'visible'
       : true;
+
     if (isBackground && Notification.permission === 'granted') {
       new Notification('New message', { body: message });
     }
@@ -414,49 +168,176 @@ async function requestNotificationPermission() {
   }
 }
 
-// Initialize application
-async function initializeApp() {
+function setupSocketHandlers() {
+  socket.on('connect', () => {
+    setConnectionStatus(`Connected as ${myNickname}`);
+    setReconnectVisible(false);
+  });
+
+  socket.on('disconnect', () => {
+    setConnectionStatus('Disconnected');
+    setReconnectVisible(true);
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('Connection error:', error);
+    setConnectionStatus('Connection error');
+    setReconnectVisible(true);
+  });
+
+  socket.on('chat:new', (message) => {
+    if (message && message.room && message.room !== ROOM_NAME) return;
+
+    addMessageToDOM(message);
+
+    if (message && message.sender && message.sender !== myNickname) {
+      playNotificationSound();
+      notify(`${message.sender}: ${message.text || message.fileName || 'sent an attachment'}`);
+    }
+  });
+}
+
+function initializeSocket() {
+  return new Promise((resolve, reject) => {
+    myNickname = generateNickname();
+    setConnectionStatus('Connecting...');
+
+    socket = io(BACKEND_URL, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10
+    });
+
+    socket.on('connect', () => resolve());
+    socket.on('connect_error', (error) => reject(error));
+
+    setupSocketHandlers();
+  });
+}
+
+function sendMessage() {
+  if (isSendingMessage || !socket || !socket.connected) return;
+
+  const input = document.getElementById('input');
+  if (!input) return;
+
+  const messageText = input.value.trim();
+  if (!messageText) return;
+
+  isSendingMessage = true;
+
+  const messageData = {
+    id: Date.now(),
+    text: messageText,
+    sender: myNickname,
+    timestamp: new Date().toISOString(),
+    room: ROOM_NAME
+  };
+
+  socket.emit('chat:send', messageData);
+  input.value = '';
+  isSendingMessage = false;
+}
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const uploadStatus = document.createElement('div');
+  uploadStatus.className = 'upload-status';
+  uploadStatus.textContent = `Uploading ${file.name}...`;
+  document.getElementById('messages').appendChild(uploadStatus);
+
   try {
-    document.getElementById('connectionStatus').textContent = "Initializing...";
-    await initializeDatabase();
+    const formData = new FormData();
+    formData.append('file', file);
 
-    await initializeDrone();
-    setupRoomHandlers();
-    await loadMessages();
-    await requestNotificationPermission();
+    const response = await fetch(`${BACKEND_URL}/upload`, {
+      method: 'POST',
+      body: formData
+    });
 
-    setupEventListeners();
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
 
+    const result = await response.json();
+
+    socket.emit('chat:send', {
+      id: Date.now(),
+      sender: myNickname,
+      timestamp: new Date().toISOString(),
+      text: `${file.name}`,
+      fileUrl: result.url,
+      fileName: result.name || file.name,
+      fileType: result.mime || file.type,
+      room: ROOM_NAME
+    });
+
+    uploadStatus.remove();
   } catch (error) {
-    console.error('Initialization failed:', error);
-    document.getElementById('connectionStatus').textContent = "Initialization failed";
-    document.getElementById('reconnectButton').style.display = 'block';
+    uploadStatus.textContent = `Upload failed: ${error.message}`;
+    setTimeout(() => uploadStatus.remove(), 3000);
+  } finally {
+    event.target.value = '';
   }
 }
 
-// Event listeners
 function setupEventListeners() {
+  if (listenersBound) return;
+
   const sendButton = document.getElementById('sendButton');
   const inputField = document.getElementById('input');
   const fileUploadButton = document.getElementById('fileUploadButton');
   const fileInput = document.getElementById('fileInput');
-  const uploadButton = document.getElementById('uploadButton');
-  const downloadButton = document.getElementById('downloadButton');
   const reconnectButton = document.getElementById('reconnectButton');
 
-  sendButton.addEventListener('click', () => sendMessage());
-  inputField.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-  fileUploadButton.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', (e) => handleFileUpload(e));
-  uploadButton.addEventListener('click', () => uploadDatabaseToSupabase());
-  downloadButton.addEventListener('click', () => loadDatabaseFromSupabase());
-  reconnectButton.addEventListener('click', () => initializeApp());
+  if (sendButton) sendButton.addEventListener('click', sendMessage);
+  if (inputField) {
+    inputField.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  }
+
+  if (fileUploadButton && fileInput) {
+    fileUploadButton.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileUpload);
+  }
+
+  if (reconnectButton) {
+    reconnectButton.addEventListener('click', async () => {
+      reconnectButton.disabled = true;
+      try {
+        if (socket) socket.disconnect();
+        await initializeSocket();
+      } catch (error) {
+        console.error('Reconnect failed:', error);
+      } finally {
+        reconnectButton.disabled = false;
+      }
+    });
+  }
+
+  listenersBound = true;
 }
 
-// Start the app
+async function initializeApp() {
+  try {
+    setConnectionStatus('Initializing...');
+    disableLegacyBackupButtons();
+    setupEventListeners();
+
+    await initializeSocket();
+    await loadMessages();
+    await requestNotificationPermission();
+  } catch (error) {
+    console.error('Initialization failed:', error);
+    setConnectionStatus('Initialization failed');
+    setReconnectVisible(true);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
-});
-
-window.addEventListener('load', () => {
 });

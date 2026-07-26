@@ -14,6 +14,10 @@ document.getElementById('server3').addEventListener('click', function() {
   navigateTo('catchat3/index.html');
 });
 
+document.getElementById('beta').addEventListener('click', function() {
+  navigateTo('beta/index.html');
+});
+
 document.getElementById('videochat').addEventListener('click', function() {
   navigateTo('videochat/index.html');
 });
