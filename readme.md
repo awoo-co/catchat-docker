@@ -1,5 +1,5 @@
 # Read Me
-the videochat you were using before is no longer available. for right now until i figure out a replacement sdk.
+# videochat is back!!!!!
 # catchat
 # features
 ## added new backend system self-hosted on my server using docker and funnel using tailscale

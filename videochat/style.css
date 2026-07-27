@@ -37,3 +37,56 @@ p {
         padding: 18px;
     }
 }
+
+
+/* --- Appended Video Layout Styles --- */
+.btn {
+    background: #303030;
+    color: #fff;
+    border: 1px solid #404040;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    margin: 4px;
+    transition: background 0.2s ease;
+}
+
+.btn:hover {
+    background: #404040;
+}
+
+.video-container {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 1.25rem 0;
+}
+
+.video-wrapper {
+    position: relative;
+    width: min(230px, 100%);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #111;
+    border: 1px solid #303030;
+}
+
+.video-wrapper video {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+}
+
+.video-label {
+    position: absolute;
+    bottom: 6px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+}

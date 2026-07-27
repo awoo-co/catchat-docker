@@ -3,14 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>readme</title>
+    <title>CatChat Video</title>
     <link rel="stylesheet" href="style.css">
     <link rel="shortcut icon" href="https://awoo-co.github.io/cdn/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
 <body>
     <main class="container">
-        <h1>readme</h1>
-        <p>the videochat you were using before is no longer available. for right now until i figure out a replacement sdk..</p>
+        <h1>CatChat Video</h1>
+        <p id="status-text">Select a room or enter a room ID to start video chat.</p>
+
+        <div class="room-controls" id="roomControls">
+            <button id="openRoom1" class="btn">Room 1</button>
+            <button id="openRoom2" class="btn">Room 2</button>
+            <button id="openRoom3" class="btn">Room 3</button>
+        </div>
+
+        <div class="video-container" id="videoContainer" style="display: none;">
+            <div class="video-wrapper">
+                <video id="localVideo" autoplay playsinline muted></video>
+                <span class="video-label">You</span>
+            </div>
+            <div class="video-wrapper">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <span class="video-label">Peer</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button id="leaveRoom" class="btn" style="display: none; background: #d9534f;">Leave Call</button>
+            <button id="goBack" class="btn">Go Back</button>
+        </div>
     </main>
     <script src="script.js"></script>
 </body>
