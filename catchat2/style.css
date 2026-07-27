@@ -195,3 +195,55 @@ footer {
     margin-top: 20px;
     font-size: 12px;
 }
+
+/* Media & File Attachment Styling */
+.media-container {
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+.chat-media-img {
+  max-width: 280px;
+  max-height: 280px;
+  border-radius: 8px;
+  display: block;
+  margin-bottom: 6px;
+  object-fit: cover;
+}
+
+.chat-media-video {
+  max-width: 320px;
+  max-height: 240px;
+  border-radius: 8px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.file-download-link {
+  color: #82b1ff !important;
+  font-size: 13px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.file-download-link:hover {
+  text-decoration: underline;
+}
+
+.file-download-button {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 8px 14px;
+  background-color: var(--app-button, #512DA8);
+  color: #ffffff !important;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.file-download-button:hover {
+  background-color: #4527A0;
+}

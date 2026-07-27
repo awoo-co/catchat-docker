@@ -2,29 +2,6 @@
 const BACKEND_URL = window.CATCHAT_BACKEND_URL || 'http://jam-server.opah-pierce.ts.net:3001';
 const ROOM_NAME = 'catchat1';
 
-
-
-function initializeSocket() {
-  return new Promise((resolve, reject) => {
-    myNickname = generateNickname();
-    setConnectionStatus('Connecting...');
-
-    socket = io(BACKEND_URL, {
-      // Start with HTTP polling first, then upgrade to WebSocket
-      transports: ['polling', 'websocket'],
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 10
-    });
-
-    setupSocketHandlers();
-
-    // Use .once to prevent promise state issues on reconnects
-    socket.once('connect', () => resolve());
-    socket.once('connect_error', (error) => reject(error));
-  });
-};
-  
 let myNickname = null;
 let socket = null;
 let lastMessageId = 0;
@@ -79,50 +56,48 @@ function buildAbsoluteUrl(pathOrUrl) {
 }
 
 function renderMessageBody(message) {
+  // Render File Attachments
   if (message.fileUrl) {
     const fileUrl = buildAbsoluteUrl(message.fileUrl);
-    const fileName = escapeHtml(message.fileName || 'uploaded file');
+    const fileName = escapeHtml(message.fileName || 'file');
     const fileType = String(message.fileType || '').toLowerCase();
 
-    if (fileType.startsWith('image/')) {
-      return `<img src="${fileUrl}" alt="${fileName}" style="max-width: 200px; border-radius: 6px;">`;
-    }
-
-    return `<a href="${fileUrl}" download>${fileName}</a>`;
-  }
-
-  return escapeHtml(message.text || '');
-}
-
-function renderMessageBody(message) {
-  // 1. Handle file attachments (if fileUrl exists)
-  if (message.fileUrl) {
-    const fileUrl = buildAbsoluteUrl(message.fileUrl);
-    const fileName = escapeHtml(message.fileName || 'Download File');
-    const fileType = String(message.fileType || '').toLowerCase();
-
-    // Image handling
+    // Image files
     if (fileType.startsWith('image/')) {
       return `
-        <div class="file-attachment">
-          <img src="${fileUrl}" alt="${fileName}" style="max-width: 250px; max-height: 250px; border-radius: 8px; display: block; margin-bottom: 6px;">
-          <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-link">💾 ${fileName}</a>
+        <div class="media-container">
+          <img src="${fileUrl}" alt="${fileName}" class="chat-media-img" />
+          <br>
+          <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-link">💾 Download ${fileName}</a>
         </div>`;
     }
 
-    // Video handling
+    // Video files
     if (fileType.startsWith('video/')) {
       return `
-        <div class="file-attachment">
-          <video controls style="max-width: 300px; max-height: 250px; border-radius: 8px; display: block; margin-bottom: 6px;">
+        <div class="media-container">
+          <video controls class="chat-media-video">
             <source src="${fileUrl}" type="${fileType}">
-            Your browser does not support the video tag.
+            Your browser does not support video playback.
           </video>
-          <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-link">💾 ${fileName}</a>
+          <br>
+          <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-link">💾 Download ${fileName}</a>
         </div>`;
     }
 
-    // All other file types (PDFs, Zip, Docs, etc.)
+    // Audio files
+    if (fileType.startsWith('audio/')) {
+      return `
+        <div class="media-container">
+          <audio controls>
+            <source src="${fileUrl}" type="${fileType}">
+          </audio>
+          <br>
+          <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-link">💾 Download ${fileName}</a>
+        </div>`;
+    }
+
+    // Generic files (Zip, PDF, Docs, etc.)
     return `
       <div class="file-attachment">
         <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-button">
@@ -131,13 +106,48 @@ function renderMessageBody(message) {
       </div>`;
   }
 
-  // 2. Regular text message
+  // Regular text message
   return escapeHtml(message.text || '');
+}
+
+function addMessageToDOM(message) {
+  if (!message || typeof message.id === 'undefined') return;
+
+  const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
+  if (existingMessage) return;
+
+  const messagesDiv = document.getElementById('messages');
+  if (!messagesDiv) return;
+
+  const messageElement = document.createElement('div');
+  messageElement.className = 'message';
+
+  if (message.sender === myNickname) {
+    messageElement.classList.add('my-message');
+  }
+
+  messageElement.dataset.messageId = message.id;
+  const senderName = escapeHtml(message.sender || 'Unknown');
+  messageElement.innerHTML = `<strong>${senderName}:</strong> ${renderMessageBody(message)}`;
+
+  messagesDiv.appendChild(messageElement);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  if (Number(message.id) > lastMessageId) {
+    lastMessageId = Number(message.id);
+  }
+}
+
+function clearMessagesDOM() {
+  const messagesDiv = document.getElementById('messages');
+  if (messagesDiv) messagesDiv.innerHTML = '';
+  lastMessageId = 0;
 }
 
 async function loadMessages() {
   try {
-    const response = await fetch(`${BACKEND_URL}/messages?limit=100`);
+    clearMessagesDOM();
+    const response = await fetch(`${BACKEND_URL}/messages?room=${encodeURIComponent(ROOM_NAME)}&limit=100`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const messages = await response.json();
@@ -147,44 +157,11 @@ async function loadMessages() {
   }
 }
 
-function playNotificationSound() {
-  try {
-    const audio = new Audio('/src/ding.mp3');
-    audio.volume = 0.3;
-    audio.play().catch((e) => console.log('Audio play prevented or error:', e));
-  } catch (e) {
-    console.log('Failed to play sound:', e);
-  }
-}
-
-function notify(message) {
-  try {
-    const isBackground = typeof document !== 'undefined'
-      ? document.visibilityState !== 'visible'
-      : true;
-
-    if (isBackground && Notification.permission === 'granted') {
-      new Notification('New message', { body: message });
-    }
-  } catch (e) {
-    console.log('Notification error:', e);
-  }
-}
-
-async function requestNotificationPermission() {
-  try {
-    if (Notification.permission !== 'granted') {
-      await Notification.requestPermission();
-    }
-  } catch (e) {
-    console.log('Notification permission error:', e);
-  }
-}
-
 function setupSocketHandlers() {
   socket.on('connect', () => {
     setConnectionStatus(`Connected as ${myNickname}`);
     setReconnectVisible(false);
+    socket.emit('room:join', ROOM_NAME);
   });
 
   socket.on('disconnect', () => {
@@ -200,13 +177,7 @@ function setupSocketHandlers() {
 
   socket.on('chat:new', (message) => {
     if (message && message.room && message.room !== ROOM_NAME) return;
-
     addMessageToDOM(message);
-
-    if (message && message.sender && message.sender !== myNickname) {
-      playNotificationSound();
-      notify(`${message.sender}: ${message.text || message.fileName || 'sent an attachment'}`);
-    }
   });
 }
 
@@ -216,16 +187,16 @@ function initializeSocket() {
     setConnectionStatus('Connecting...');
 
     socket = io(BACKEND_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10
     });
 
-    socket.on('connect', () => resolve());
-    socket.on('connect_error', (error) => reject(error));
-
     setupSocketHandlers();
+
+    socket.once('connect', () => resolve());
+    socket.once('connect_error', (error) => reject(error));
   });
 }
 
@@ -281,7 +252,7 @@ async function handleFileUpload(event) {
       id: Date.now(),
       sender: myNickname,
       timestamp: new Date().toISOString(),
-      text: `${file.name}`,
+      text: file.name,
       fileUrl: result.url,
       fileName: result.name || file.name,
       fileType: result.mime || file.type,
@@ -343,7 +314,6 @@ async function initializeApp() {
 
     await initializeSocket();
     await loadMessages();
-    await requestNotificationPermission();
   } catch (error) {
     console.error('Initialization failed:', error);
     setConnectionStatus('Initialization failed');
