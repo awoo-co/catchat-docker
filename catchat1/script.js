@@ -94,32 +94,45 @@ function renderMessageBody(message) {
   return escapeHtml(message.text || '');
 }
 
-function addMessageToDOM(message) {
-  if (!message || typeof message.id === 'undefined') return;
+function renderMessageBody(message) {
+  // 1. Handle file attachments (if fileUrl exists)
+  if (message.fileUrl) {
+    const fileUrl = buildAbsoluteUrl(message.fileUrl);
+    const fileName = escapeHtml(message.fileName || 'Download File');
+    const fileType = String(message.fileType || '').toLowerCase();
 
-  const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
-  if (existingMessage) return;
+    // Image handling
+    if (fileType.startsWith('image/')) {
+      return `
+        <div class="file-attachment">
+          <img src="${fileUrl}" alt="${fileName}" style="max-width: 250px; max-height: 250px; border-radius: 8px; display: block; margin-bottom: 6px;">
+          <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-link">💾 ${fileName}</a>
+        </div>`;
+    }
 
-  const messagesDiv = document.getElementById('messages');
-  if (!messagesDiv) return;
+    // Video handling
+    if (fileType.startsWith('video/')) {
+      return `
+        <div class="file-attachment">
+          <video controls style="max-width: 300px; max-height: 250px; border-radius: 8px; display: block; margin-bottom: 6px;">
+            <source src="${fileUrl}" type="${fileType}">
+            Your browser does not support the video tag.
+          </video>
+          <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-link">💾 ${fileName}</a>
+        </div>`;
+    }
 
-  const messageElement = document.createElement('div');
-  messageElement.className = 'message';
-
-  if (message.sender === myNickname) {
-    messageElement.classList.add('my-message');
+    // All other file types (PDFs, Zip, Docs, etc.)
+    return `
+      <div class="file-attachment">
+        <a href="${fileUrl}" download="${fileName}" target="_blank" class="file-download-button">
+          📁 Download ${fileName}
+        </a>
+      </div>`;
   }
 
-  messageElement.dataset.messageId = message.id;
-  const senderName = escapeHtml(message.sender || 'Unknown');
-  messageElement.innerHTML = `<strong>${senderName}:</strong> ${renderMessageBody(message)}`;
-
-  messagesDiv.appendChild(messageElement);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-  if (Number(message.id) > lastMessageId) {
-    lastMessageId = Number(message.id);
-  }
+  // 2. Regular text message
+  return escapeHtml(message.text || '');
 }
 
 async function loadMessages() {
