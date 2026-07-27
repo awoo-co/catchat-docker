@@ -25,21 +25,6 @@ function setReconnectVisible(visible) {
   if (button) button.style.display = visible ? 'block' : 'none';
 }
 
-function disableLegacyBackupButtons() {
-  const uploadButton = document.getElementById('uploadButton');
-  const downloadButton = document.getElementById('downloadButton');
-
-  if (uploadButton) {
-    uploadButton.disabled = true;
-    uploadButton.title = 'Backup moved to backend';
-  }
-
-  if (downloadButton) {
-    downloadButton.disabled = true;
-    downloadButton.title = 'Restore moved to backend';
-  }
-}
-
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -224,45 +209,84 @@ function sendMessage() {
   isSendingMessage = false;
 }
 
+// Handler for multiple file uploads
 async function handleFileUpload(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+
+  for (const file of files) {
+    const uploadStatus = document.createElement('div');
+    uploadStatus.className = 'upload-status';
+    uploadStatus.textContent = `Uploading ${file.name}...`;
+    document.getElementById('messages').appendChild(uploadStatus);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${BACKEND_URL}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      socket.emit('chat:send', {
+        id: Date.now(),
+        sender: myNickname,
+        timestamp: new Date().toISOString(),
+        text: file.name,
+        fileUrl: result.url,
+        fileName: result.name || file.name,
+        fileType: result.mime || file.type,
+        room: ROOM_NAME
+      });
+
+      uploadStatus.remove();
+    } catch (error) {
+      uploadStatus.textContent = `Upload failed for ${file.name}: ${error.message}`;
+      setTimeout(() => uploadStatus.remove(), 4000);
+    }
+  }
+
+  event.target.value = '';
+}
+
+// Download server database backup
+function handleDownloadBackup() {
+  window.open(`${BACKEND_URL}/backup`, '_blank');
+}
+
+// Restore server database backup from an uploaded .db file
+async function handleRestoreBackup(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const uploadStatus = document.createElement('div');
-  uploadStatus.className = 'upload-status';
-  uploadStatus.textContent = `Uploading ${file.name}...`;
-  document.getElementById('messages').appendChild(uploadStatus);
+  const confirmed = window.confirm('Are you sure you want to restore this database backup? Current database will be overwritten.');
+  if (!confirmed) {
+    event.target.value = '';
+    return;
+  }
 
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('database', file);
 
-    const response = await fetch(`${BACKEND_URL}/upload`, {
+    const response = await fetch(`${BACKEND_URL}/restore`, {
       method: 'POST',
       body: formData
     });
 
-    if (!response.ok) {
-      throw new Error(`Upload failed with status ${response.status}`);
-    }
+    if (!response.ok) throw new Error('Restore request failed');
 
-    const result = await response.json();
-
-    socket.emit('chat:send', {
-      id: Date.now(),
-      sender: myNickname,
-      timestamp: new Date().toISOString(),
-      text: file.name,
-      fileUrl: result.url,
-      fileName: result.name || file.name,
-      fileType: result.mime || file.type,
-      room: ROOM_NAME
-    });
-
-    uploadStatus.remove();
+    alert('Database restored successfully! Reloading room messages...');
+    await loadMessages();
   } catch (error) {
-    uploadStatus.textContent = `Upload failed: ${error.message}`;
-    setTimeout(() => uploadStatus.remove(), 3000);
+    alert(`Failed to restore database: ${error.message}`);
   } finally {
     event.target.value = '';
   }
@@ -273,8 +297,14 @@ function setupEventListeners() {
 
   const sendButton = document.getElementById('sendButton');
   const inputField = document.getElementById('input');
+  
   const fileUploadButton = document.getElementById('fileUploadButton');
   const fileInput = document.getElementById('fileInput');
+
+  const uploadButton = document.getElementById('uploadButton');
+  const dbFileInput = document.getElementById('dbFileInput');
+  const downloadButton = document.getElementById('downloadButton');
+
   const reconnectButton = document.getElementById('reconnectButton');
 
   if (sendButton) sendButton.addEventListener('click', sendMessage);
@@ -284,9 +314,33 @@ function setupEventListeners() {
     });
   }
 
+  // File Upload (Multiple Files)
   if (fileUploadButton && fileInput) {
+    fileInput.setAttribute('multiple', 'true'); // ensure multiple mode is set
     fileUploadButton.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', handleFileUpload);
+  }
+
+  // Backup Download Button (📥 / Download DB)
+  if (downloadButton) {
+    downloadButton.addEventListener('click', handleDownloadBackup);
+  }
+
+  // Restore DB Button (💾 / Restore DB)
+  if (uploadButton) {
+    // Dynamically create hidden database file input if it's missing in HTML
+    let dbInput = dbFileInput || document.getElementById('dbFileInput');
+    if (!dbInput) {
+      dbInput = document.createElement('input');
+      dbInput.type = 'file';
+      dbInput.id = 'dbFileInput';
+      dbInput.accept = '.db';
+      dbInput.style.display = 'none';
+      document.body.appendChild(dbInput);
+    }
+
+    uploadButton.addEventListener('click', () => dbInput.click());
+    dbInput.addEventListener('change', handleRestoreBackup);
   }
 
   if (reconnectButton) {
@@ -309,7 +363,6 @@ function setupEventListeners() {
 async function initializeApp() {
   try {
     setConnectionStatus('Initializing...');
-    disableLegacyBackupButtons();
     setupEventListeners();
 
     await initializeSocket();

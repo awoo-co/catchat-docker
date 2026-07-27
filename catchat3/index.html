@@ -3,24 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Catchat - Room 1</title>
+  <title>Catchat</title>
   <link rel="stylesheet" href="./style.css">
-   <link rel="shortcut icon" href="https://awoo-co.github.io/cdn/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="https://awoo-co.github.io/cdn/favicon.ico" type="image/x-icon">
 </head>
 <body class="dark-mode">
   <div id="app">
-    <div id="connectionStatus">Connecting to chat...</div>
-    <button id="reconnectButton" class="app-button" style="display: none;">🔄</button>
+    <div id="headerContainer">
+      <div id="connectionStatus">Connecting to chat...</div>
+      <div id="roomSelectorContainer">
+        <label for="roomSelect">Room: </label>
+        <select id="roomSelect" class="room-select">
+          <option value="catchat 1">Catchat 1</option>
+          <option value="catchat 2">Catchat 2</option>
+          <option value="catchat 3">Catchat 3</option>
+          <option value="beta" selected>Beta</option>
+        </select>
+      </div>
+      <button id="reconnectButton" class="app-button" style="display: none;">🔄</button>
+    </div>
     
     <div id="chatContainer">
-      <div id="messages" class="messages" tabindex="0">
-        </div>
+      <div id="messages" class="messages" tabindex="0"></div>
 
       <div id="inputContainer">
         <button id="uploadButton" class="icon-button" title="Upload Database">💾</button>
         <button id="downloadButton" class="icon-button" title="Download Database">📥</button>
         <button id="fileUploadButton" class="icon-button" title="Upload File">📤</button>
-  <input type="file" id="fileInput" style="display:none" />
+        <input type="file" id="fileInput" style="display:none" />
         
         <input id="input" class="chat-input" placeholder="Type your message..." type="text" />
         
